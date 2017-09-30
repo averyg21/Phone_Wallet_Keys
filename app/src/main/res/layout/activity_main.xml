@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#3b81bf"
+    android:background="#4792d3"
     tools:context="com.example.averygrimes.phone_wallet_keys.MainActivity">
 
     <LinearLayout
