@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (view.getId())
         {
             case R.id.addDevice:
-            {//
+            {
                 listView.setAdapter(adapter);
                 list.add("Device " + deviceTotal);
 
