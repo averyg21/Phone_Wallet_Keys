@@ -8,6 +8,8 @@ import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
@@ -61,6 +63,32 @@ public class MainActivity extends AppCompatActivity {
                 enableDisable();
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu dot){
+        getMenuInflater().inflate(R.menu.main, dot);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        int id =item.getItemId();
+
+        if (id==R.id.id_setting){
+            Intent intentsetting = new Intent(MainActivity.this,Setting.class);
+            startActivity(intentsetting);
+            return true;
+        }
+        if (id==R.id.id_help){
+            return true;
+        }
+        if (id==R.id.id_history){
+            Intent intenthistory = new Intent(MainActivity.this,History.class);
+            startActivity(intenthistory);
+            return true;
+        }
+        return true;
     }
 
     public void enableDisable(){
