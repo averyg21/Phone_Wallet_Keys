@@ -6,26 +6,32 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.ImageButton;
-import android.widget.Space;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
+
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
 {
 
     private static final String TAG = "test";  //Show on the android monitor
-    BluetoothAdapter bluetooth;
-    Button addDevice, bluetoothSwitch; // Button references
-    int deviceTotal = 0;
+    private BluetoothAdapter bluetooth;
+    private Button addDevice, bluetoothSwitch; // Button references
+    private int deviceTotal = 0;
+
+    private SwipeMenuListView listView;
+    private ArrayList<String> list;
+    private ArrayAdapter<String> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -35,6 +41,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         bluetooth = BluetoothAdapter.getDefaultAdapter();
         deviceTotal = 0;
+
+        listView = (SwipeMenuListView) findViewById(R.id.listView);
+
+        list = new ArrayList<>();
+        adapter = new ArrayAdapter(MainActivity.this, android.R.layout.simple_list_item_1, list);
 
         // Point references to the actual button
         addDevice = (Button) findViewById(R.id.addDevice);
@@ -52,29 +63,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         {
             case R.id.addDevice:
             {
-                TableLayout deviceLayout = (TableLayout) findViewById(R.id.deviceLayout);
+                listView.setAdapter(adapter);
+                list.add("Device " + deviceTotal);
 
-                TableRow row= new TableRow(this);
-                TableRow.LayoutParams lp = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT);
-                row.setLayoutParams(lp);
-                row.setBackgroundColor(Color.GREEN);
-                TextView tv = new TextView(this);
-                tv.setText("Device " + deviceTotal);
-                Space space = new Space(this);
-                space.setMinimumWidth(790);
-                Button addBtn = new Button(this);
-                addBtn.setText("Snooze");
-                row.addView(tv);
-                row.addView(space);
-                row.addView(addBtn);
-                deviceLayout.addView(row,0);
+                adapter.notifyDataSetChanged();
 
-                TableRow row2= new TableRow(this);
-                row2.setLayoutParams(lp);
-                Space space2 = new Space(this);
-                space2.setMinimumHeight(50);
-                row2.addView(space2);
-                deviceLayout.addView(row2,1);
+                SwipeMenuCreator creator = new SwipeMenuCreator()
+                {
+                    @Override
+                    public void create(SwipeMenu menu) {
+                        // create "open" item
+                        SwipeMenuItem snoozeItem = new SwipeMenuItem(
+                                getApplicationContext());
+                        // set item background
+                        snoozeItem.setBackground(new ColorDrawable(Color.rgb(0x00, 0x66,
+                                0xff)));
+                        // set item width
+                        snoozeItem.setWidth(200);
+                        // set item title
+                        snoozeItem.setIcon(R.drawable.icon_snooze);
+
+                        snoozeItem.setId(0);
+                        // add to menu
+                        menu.addMenuItem(snoozeItem);
+
+                        // create "delete" item
+                        SwipeMenuItem settingsItem = new SwipeMenuItem(
+                                getApplicationContext());
+                        // set item background
+                        settingsItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                                0x3F, 0x25)));
+                        // set item width
+                        settingsItem.setWidth(200);
+                        // set a icon
+                        settingsItem.setIcon(R.drawable.icon_settings);
+                        // add to menu
+                        menu.addMenuItem(settingsItem);
+                    }
+                };
+
+                listView.setMenuCreator(creator);
+
+                listView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
+                        switch (index) {
+                            case 0: // Snooze
+                                Log.d(TAG, "onMenuItemClick: clicked item " + index);
+
+                                break;
+                            case 1: // Settings
+                                Log.d(TAG, "onMenuItemClick: clicked item " + index);
+                                break;
+                        }
+                        // false : close the menu; true : not close the menu
+                        return false;
+                    }
+                });
 
                 deviceTotal++;
                 break;
