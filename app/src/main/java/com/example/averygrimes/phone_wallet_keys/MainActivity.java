@@ -9,8 +9,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.support.v7.widget.RecyclerView;
 import android.widget.Button;
@@ -156,41 +154,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_Settings:
             {
 
+
                 break;
             }
-        }
-        
-    }
-    
-    
-    public boolean onCreateOptionsMenu(Menu dot){
-        getMenuInflater().inflate(R.menu.main, dot);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item){
-        int id =item.getItemId();
-
-        if (id==R.id.id_setting){
-            Intent intentsetting = new Intent(MainActivity.this,Setting.class);
-            startActivity(intentsetting);
-            return true;
-        }
-        if (id==R.id.id_help){
-            return true;
-        }
-        if (id==R.id.id_history){
-            Intent intenthistory = new Intent(MainActivity.this,History.class);
-            startActivity(intenthistory);
-            return true;
-        }
-        return true;
-    }
-
-    public void enableDisable(){
-        if(bluetooth == null){
-            Log.d(TAG, "bluetooth is not compatible with this device");
         }
     }
 
