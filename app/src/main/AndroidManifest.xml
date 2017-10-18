@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.averygrimes.phone_wallet_keys">
-
-  
+    
     <uses-feature android:name="android.hardware.bluetooth" />
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -25,13 +24,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-      
         <activity android:name=".DeviceSettings"></activity>
         <activity android:name=".Setting"></activity>
         <activity android:name=".History"></activity>
     </application>
 
-
 </manifest>
-
