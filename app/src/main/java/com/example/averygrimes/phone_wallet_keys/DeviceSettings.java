@@ -7,7 +7,7 @@ import android.widget.Button;
 
 public class DeviceSettings extends AppCompatActivity implements View.OnClickListener
 {
-    Button btn_DeviceSettings_OnOff, btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Sound, btn_DeviceSettings_SetColor;
+    Button btn_DeviceSettings_OnOff, btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Notification, btn_DeviceSettings_SnoozeTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -18,14 +18,14 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         btn_DeviceSettings_OnOff = (Button) findViewById(R.id.btn_DeviceSettings_OnOff);
         btn_DeviceSettings_Delete = (Button) findViewById(R.id.btn_DeviceSettings_Delete);
         btn_DeviceSettings_EditName = (Button) findViewById(R.id.btn_DeviceSettings_EditName);
-        btn_DeviceSettings_Sound = (Button) findViewById(R.id.btn_DeviceSettings_Sound);
-        btn_DeviceSettings_SetColor = (Button) findViewById(R.id.btn_DeviceSettings_SetColor);
+        btn_DeviceSettings_Notification = (Button) findViewById(R.id.btn_DeviceSettings_Notification);
+        btn_DeviceSettings_SnoozeTimer = (Button) findViewById(R.id.btn_DeviceSettings_SnoozeTimer);
 
         btn_DeviceSettings_OnOff.setOnClickListener(this);
         btn_DeviceSettings_Delete.setOnClickListener(this);
         btn_DeviceSettings_EditName.setOnClickListener(this);
-        btn_DeviceSettings_Sound.setOnClickListener(this);
-        btn_DeviceSettings_SetColor.setOnClickListener(this);
+        btn_DeviceSettings_Notification.setOnClickListener(this);
+        btn_DeviceSettings_SnoozeTimer.setOnClickListener(this);
     }
 
     @Override
@@ -49,13 +49,13 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
                 break;
             }
-            case R.id.btn_DeviceSettings_Sound:
+            case R.id.btn_DeviceSettings_Notification:
             {
 
 
                 break;
             }
-            case R.id.btn_DeviceSettings_SetColor:
+            case R.id.btn_DeviceSettings_SnoozeTimer:
             {
 
 
