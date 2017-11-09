@@ -317,6 +317,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //case1: bonded already
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED){
                     Log.d(TAG, "BroadcastReceiver: BOND_BONDED.");
+                    startActivity(new Intent(MainActivity.this, DeviceSettings.class));
                 }
                 //case2: creating a bone
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
