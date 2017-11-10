@@ -2,15 +2,19 @@ package com.example.averygrimes.phone_wallet_keys;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Set;
+import android.app.AlertDialog;
 
 public class DeviceSettings extends AppCompatActivity implements View.OnClickListener
 {
@@ -54,7 +58,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
     public void onClick(View view)
     {
         String deviceAddress = extrasForDeviceSettings.getString("DeviceAddress");
-        BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
+        final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
         switch (view.getId())
         {
@@ -80,8 +84,55 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             }
             case R.id.btn_DeviceSettings_EditName:
             {
+                // get prompts.xml view
+                LayoutInflater li = LayoutInflater.from(DeviceSettings.this);
+                View promptsView = li.inflate(R.layout.input_dialog, null);
+
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                        DeviceSettings.this);
+
+                // set prompts.xml to alertdialog builder
+                alertDialogBuilder.setView(promptsView);
+
+                final EditText userInput = (EditText) promptsView
+                        .findViewById(R.id.editTextDialogUserInput);
+
+                // set dialog message
+                alertDialogBuilder
+                        .setCancelable(false)
+                        .setPositiveButton("OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog,int id)
+                                    {
+                                        String result = userInput.getText().toString();
 
 
+                                        try {
+                                            Method method = bluetoothDevice.getClass().getMethod("setAlias", String.class);
+                                            if(method != null) {
+                                                method.invoke(bluetoothDevice, result);
+                                            }
+                                        } catch (NoSuchMethodException e) {
+                                            e.printStackTrace();
+                                        } catch (InvocationTargetException e) {
+                                            e.printStackTrace();
+                                        } catch (IllegalAccessException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                })
+                        .setNegativeButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog,int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+
+                // create alert dialog
+                AlertDialog alertDialog = alertDialogBuilder.create();
+
+                // show it
+                alertDialog.show();
                 break;
             }
             case R.id.btn_DeviceSettings_Notification:

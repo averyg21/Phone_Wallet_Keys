@@ -1,6 +1,10 @@
 package com.example.averygrimes.phone_wallet_keys;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+
 import java.io.Serializable;
+import java.util.Set;
 
 public class DeviceModel implements Serializable
 {

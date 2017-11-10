@@ -17,6 +17,8 @@ import com.daimajia.swipe.SwipeLayout;
 import com.daimajia.swipe.adapters.RecyclerSwipeAdapter;
 import com.example.averygrimes.phone_wallet_keys.DeviceModel;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -109,31 +111,28 @@ public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecycler
 
                 Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
-                String deviceInfo[] = new String[pairedDevices.size() * 2];
-
                 Intent startIntent = new Intent(mContext, DeviceSettings.class);
                 Bundle extrasForDeviceSettings = new Bundle();
 
-                if (pairedDevices.size() > 0)
+                for(BluetoothDevice bt : pairedDevices)
                 {
-                    int i = 0;
-                    // There are paired devices. Get the name and address of each paired device.
-                    for (BluetoothDevice device : pairedDevices)
-                    {
-                        deviceInfo[i] = device.getName();
-                        i++;
-                        deviceInfo[i] = device.getAddress();
-                        i++;
-                    }
-                }
-
-                for(int i = 0; i < deviceInfo.length; i++)
-                {
-                    if(deviceInfo[i].equals(viewHolder.tvName.getText().toString()))
-                    {
-                        extrasForDeviceSettings.putString("DeviceAddress", deviceInfo[i+1]);
-                        startIntent.putExtras(extrasForDeviceSettings);
-                        mContext.startActivity(startIntent);
+                    try {
+                        Method method = bt.getClass().getMethod("getAliasName");
+                        if(method != null)
+                        {
+                            if(((String)method.invoke(bt)).equals(viewHolder.tvName.getText().toString()))
+                            {
+                                extrasForDeviceSettings.putString("DeviceAddress", bt.getAddress());
+                                startIntent.putExtras(extrasForDeviceSettings);
+                                mContext.startActivity(startIntent);
+                            }
+                        }
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
                     }
                 }
             }

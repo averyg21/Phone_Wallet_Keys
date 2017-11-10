@@ -15,6 +15,9 @@ import android.widget.TextView;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.daimajia.swipe.util.Attributes;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -67,7 +70,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
         for(BluetoothDevice bt : pairedDevices)
-            connectedDeviceList.add(new DeviceModel(bt.getName(), "Unpaired"));
+        {
+            try {
+                Method method = bt.getClass().getMethod("getAliasName");
+                if(method != null)
+                {
+                    connectedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Unpaired"));
+                }
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
 
 
 
