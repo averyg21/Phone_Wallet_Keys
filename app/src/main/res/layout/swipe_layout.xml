@@ -51,25 +51,28 @@
         android:layout_height="wrap_content"
         android:background="?android:selectableItemBackground"
         android:elevation="5dp"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:padding="10dp">
+
         <TextView
-        android:id="@+id/tvName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:text="Name"
-        android:textColor="@android:color/black"
-        android:textSize="10sp"/>
-        
+            android:id="@+id/tvName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:layout_weight="1"
+            android:text="Name"
+            android:textColor="@android:color/black"
+            android:textSize="10sp" />
+
         <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:text="Status"
-        android:textColor="@android:color/black"
-        android:textSize="12sp"/>
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:layout_weight="0"
+            android:text="Status"
+            android:textColor="@android:color/black"
+            android:textSize="12sp" />
     </LinearLayout>
     
 </com.daimajia.swipe.SwipeLayout>
