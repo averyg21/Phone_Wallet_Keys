@@ -16,6 +16,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import com.daimajia.swipe.util.Attributes;
 import java.util.ArrayList;
+import java.util.Set;
+
 import android.widget.Toast;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -26,7 +28,6 @@ import android.bluetooth.BluetoothDevice;
 import android.widget.ListView;
 import android.app.Dialog;
 import android.widget.AdapterView;
-import android.util.Log;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
@@ -63,8 +64,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         connectedDeviceList = new ArrayList<>();
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
-        loadData(); // Get list of previous connected bluetooth devices. MAY NOT NEED
+        for(BluetoothDevice bt : pairedDevices)
+            connectedDeviceList.add(new DeviceModel(bt.getName(), "Unpaired"));
+
+
+
         createConnectedList(); // Display loadData stuff
 
         // Ask to turn on bluetooth if it is off at the start
@@ -202,6 +208,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             case R.id.btn_Settings:
             {
+
+
                 break;
             }
         }
@@ -317,7 +325,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //case1: bonded already
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED){
                     Log.d(TAG, "BroadcastReceiver: BOND_BONDED.");
-                    startActivity(new Intent(MainActivity.this, DeviceSettings.class));
+
+
+                    Intent startIntent = new Intent(getApplicationContext(), DeviceSettings.class);
+                    Bundle extrasForDeviceSettings = new Bundle();
+
+                    extrasForDeviceSettings.putString("DeviceAddress",mDevice.getAddress());
+                    startIntent.putExtras(extrasForDeviceSettings);
+                    startActivity(startIntent);
                 }
                 //case2: creating a bone
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
@@ -427,16 +442,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 super.onScrolled(recyclerView, dx, dy);
             }
         });
-    }
-
-    // load initial data
-    public void loadData()
-    {
-
-        for (int i = 1; i < 11; i++)
-        {
-            connectedDeviceList.add(new DeviceModel("Device " + i, "Status"));
-        }
     }
 
     @Override

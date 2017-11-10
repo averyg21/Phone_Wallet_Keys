@@ -1,7 +1,10 @@
 package com.example.averygrimes.phone_wallet_keys;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,13 +18,13 @@ import com.daimajia.swipe.adapters.RecyclerSwipeAdapter;
 import com.example.averygrimes.phone_wallet_keys.DeviceModel;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecyclerViewAdapter.SimpleViewHolder>
 {
     
     private Context mContext;
     private ArrayList<DeviceModel> deviceList;
-    private Context context;
     
     public SwipeRecyclerViewAdapter(Context context, ArrayList<DeviceModel> objects)
     {
@@ -102,9 +105,37 @@ public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecycler
             {
                 //Toast.makeText(v.getContext(), "Clicked on Map " + viewHolder.tvName.getText().toString(), Toast.LENGTH_SHORT).show();
 
-                Context context = v.getContext();
-                Intent intent = new Intent(context, DeviceSettings.class);
-                context.startActivity(intent);
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+                Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+
+                String deviceInfo[] = new String[pairedDevices.size() * 2];
+
+                Intent startIntent = new Intent(mContext, DeviceSettings.class);
+                Bundle extrasForDeviceSettings = new Bundle();
+
+                if (pairedDevices.size() > 0)
+                {
+                    int i = 0;
+                    // There are paired devices. Get the name and address of each paired device.
+                    for (BluetoothDevice device : pairedDevices)
+                    {
+                        deviceInfo[i] = device.getName();
+                        i++;
+                        deviceInfo[i] = device.getAddress();
+                        i++;
+                    }
+                }
+
+                for(int i = 0; i < deviceInfo.length; i++)
+                {
+                    if(deviceInfo[i].equals(viewHolder.tvName.getText().toString()))
+                    {
+                        extrasForDeviceSettings.putString("DeviceAddress", deviceInfo[i+1]);
+                        startIntent.putExtras(extrasForDeviceSettings);
+                        mContext.startActivity(startIntent);
+                    }
+                }
             }
         });
         
