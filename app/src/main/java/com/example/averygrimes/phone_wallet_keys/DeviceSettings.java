@@ -69,16 +69,34 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             }
             case R.id.btn_DeviceSettings_Delete:
             {
-                try {
-                    Method method = bluetoothDevice.getClass().getMethod("removeBond", (Class[]) null);
-                    method.invoke(bluetoothDevice, (Object[]) null);
+                AlertDialog.Builder a_builder = new AlertDialog.Builder(this);
+                a_builder.setMessage("Are you sure you want to delete this device?")
+                        .setCancelable(false)
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int i) {
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                                try {
+                                    Method method = bluetoothDevice.getClass().getMethod("removeBond", (Class[]) null);
+                                    method.invoke(bluetoothDevice, (Object[]) null);
 
-                Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
-                startActivity(startIntent);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+
+                                Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
+                                startActivity(startIntent);
+                            }
+                        })
+                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int i) {
+
+                                dialog.cancel();
+                            }
+                        });
+                AlertDialog alert = a_builder.create();
+                alert.show();
 
                 break;
             }
