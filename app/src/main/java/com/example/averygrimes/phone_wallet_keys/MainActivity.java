@@ -505,6 +505,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return true;
     }
 
+    //Selection for the menu bar
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         int id =item.getItemId();
@@ -515,6 +516,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return true;
         }
         if (id==R.id.id_help){
+            Intent intentHelp = new Intent(MainActivity.this,Help.class);
+            startActivity(intentHelp);
             return true;
         }
         if (id==R.id.id_history){

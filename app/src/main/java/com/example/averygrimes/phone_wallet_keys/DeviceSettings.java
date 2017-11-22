@@ -34,13 +34,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         extrasForDeviceSettings = getIntent().getExtras();
 
-
-
-
-
-
-
-
         btn_DeviceSettings_OnOff = (Button) findViewById(R.id.btn_DeviceSettings_OnOff);
         btn_DeviceSettings_Delete = (Button) findViewById(R.id.btn_DeviceSettings_Delete);
         btn_DeviceSettings_EditName = (Button) findViewById(R.id.btn_DeviceSettings_EditName);

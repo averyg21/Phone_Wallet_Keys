@@ -27,6 +27,8 @@
         <activity android:name=".DeviceSettings"></activity>
         <activity android:name=".Setting"></activity>
         <activity android:name=".History"></activity>
+        <activity android:name=".Themes"></activity>
+        <activity android:name=".Help"></activity>
     </application>
 
 </manifest>
