@@ -9,7 +9,7 @@ import android.view.View;
 import android.widget.Button;
 
 
-public class Themes extends AppCompatActivity {
+public class Themes extends AppCompatActivity{
     Button btn_UHCL, btn_Dark, btn_Beach, btn_Fall;
 
     @Override
@@ -17,10 +17,13 @@ public class Themes extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_themes);
 
+
+
         btn_UHCL =(Button)findViewById(R.id.btn_UHCL);
         btn_Dark =(Button)findViewById(R.id.btn_Dark);
         btn_Beach=(Button)findViewById(R.id.btn_Beach);
         btn_Fall =(Button)findViewById(R.id.btn_Fall);
+
 
         btn_UHCL.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -68,6 +71,9 @@ public class Themes extends AppCompatActivity {
             }
         });
 
+
     }
 
+
 }
+

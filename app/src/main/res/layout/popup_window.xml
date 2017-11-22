@@ -5,6 +5,9 @@
     android:background="#62def8"
     android:orientation="vertical">
 
+    <!-- added an all caps to "available
+    devices". & also made it bold.
+    -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -12,7 +15,9 @@
         android:layout_margin="30dp"
         android:text="Available Devices"
         android:textAlignment="center"
-        android:textSize="22dp" />
+        android:textSize="22dp"
+        android:textAllCaps="true"
+        android:textStyle="bold"/>
 
     <View
         android:layout_width="match_parent"
