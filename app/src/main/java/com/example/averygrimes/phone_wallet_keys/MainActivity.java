@@ -509,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item){
         int id =item.getItemId();
 
-        if (id==R.id.id_setting){
+        if (id==R.id.id_theme){
             Intent intentsetting = new Intent(MainActivity.this, Themes.class);
             startActivity(intentsetting);
             return true;
