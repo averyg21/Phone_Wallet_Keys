@@ -3,6 +3,7 @@ package com.example.averygrimes.phone_wallet_keys;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,6 +21,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
+//NEW
+import java.util.UUID;
+import android.widget.LinearLayout;
+import android.support.constraint.ConstraintLayout;
+import android.support.v7.app.ActionBar;
 
 import android.widget.Toast;
 import android.content.BroadcastReceiver;
@@ -52,6 +58,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public DeviceListAdapter mDeviceListAdapter;
     ListView bluetooth_ScanList;
     Dialog dialog;
+
+    //Empty References for changing color
+    LinearLayout linearLayout;
+    ConstraintLayout constraintLayout;
+    ActionBar actionBar;
+    View view;
+    int themeclick;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -113,9 +126,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // If buttons are clicked, go to onclick method
         btn_AddDevice.setOnClickListener(this);
         btn_BluetoothSwitch.setOnClickListener(this);
-    }
-    
 
+
+        //changes the color of background depending on theme class
+        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+        constraintLayout = (ConstraintLayout) findViewById(R.id.activity_main_layout);
+        actionBar = getSupportActionBar();
+        Intent intent = getIntent();
+        themeclick = intent.getIntExtra("name", 0);
+
+        if (themeclick == 1)
+        {
+            linearLayout.setBackgroundResource(R.color.colordefault);
+            constraintLayout.setBackgroundResource(R.color.colordefault2);
+        }
+        if (themeclick == 2){
+            linearLayout.setBackgroundResource(R.color.colorBlack);
+            constraintLayout.setBackgroundResource(R.color.colorRed);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#800000")));
+        }
+        if (themeclick == 3){
+            linearLayout.setBackgroundResource(R.color.colorTan);
+            constraintLayout.setBackgroundResource(R.color.colorBeach1);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#4da6ff")));
+        }
+        if (themeclick == 4){
+            linearLayout.setBackgroundResource(R.color.colorFall1);
+            constraintLayout.setBackgroundResource(R.color.colorFall2);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#3d0099")));
+        }
+    }
 
     @Override
     public void onClick(View view)
@@ -234,9 +274,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
 
-
-
-
     // Create a BroadcastReceiver for ACTION_FOUND
     private final BroadcastReceiver mBroadcastReceiver1 = new BroadcastReceiver()
     {
@@ -343,13 +380,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED){
                     Log.d(TAG, "BroadcastReceiver: BOND_BONDED.");
 
-
                     Intent startIntent = new Intent(getApplicationContext(), DeviceSettings.class);
                     Bundle extrasForDeviceSettings = new Bundle();
 
                     extrasForDeviceSettings.putString("DeviceAddress",mDevice.getAddress());
                     startIntent.putExtras(extrasForDeviceSettings);
                     startActivity(startIntent);
+
                 }
                 //case2: creating a bone
                 if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
@@ -461,6 +498,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    //The menu bar will show on the top right
     @Override
     public boolean onCreateOptionsMenu(Menu dot){
         getMenuInflater().inflate(R.menu.main, dot);
@@ -471,8 +509,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item){
         int id =item.getItemId();
 
-        if (id==R.id.id_setting){
-            Intent intentsetting = new Intent(MainActivity.this,Setting.class);
+        if (id==R.id.id_theme){
+            Intent intentsetting = new Intent(MainActivity.this, Themes.class);
             startActivity(intentsetting);
             return true;
         }
@@ -486,4 +524,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return true;
     }
+
+
+
 }
