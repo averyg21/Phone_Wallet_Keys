@@ -122,7 +122,7 @@ public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecycler
                         {
                             if(((String)method.invoke(bt)).equals(viewHolder.tvName.getText().toString()))
                             {
-                                extrasForDeviceSettings.putString("DeviceAddress", bt.getAddress());
+                                extrasForDeviceSettings.putString("deviceAddress", bt.getAddress());
                                 startIntent.putExtras(extrasForDeviceSettings);
                                 mContext.startActivity(startIntent);
                             }
