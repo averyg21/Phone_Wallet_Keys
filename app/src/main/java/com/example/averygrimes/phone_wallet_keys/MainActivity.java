@@ -1,10 +1,16 @@
 package com.example.averygrimes.phone_wallet_keys;
 
 import android.Manifest;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothSocket;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
+import android.nfc.Tag;
 import android.os.Build;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -17,10 +23,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import com.daimajia.swipe.util.Attributes;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
+import java.lang.String;
 //NEW
 import java.util.UUID;
 import android.widget.LinearLayout;
@@ -38,19 +48,37 @@ import android.widget.ListView;
 import android.app.Dialog;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.os.*;
+import android.content.DialogInterface.OnDismissListener;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
 {
     private static final String TAG = "MainActivity";
 
+    //Empty References for connected bluetooth devices list
+    public ArrayList<BluetoothDevice> connectedDevice;
+    int connectedDevicesCounter;
+
+    // Handler for connecting to devices
+    Handler connectToDevice;
+    boolean dontRun;
+
+    // Used for sending notification to phone
+    NotificationCompat.Builder notification;
+    private static final int uniqueID = 45612;
+
+    // Used to connect to the bluetooth device
+    private static final UUID MY_UUID_INSECURE =
+            UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB");
+
     // Empty References
     private Button btn_AddDevice, btn_BluetoothSwitch, btn_Scan, btn_MakeDiscoverable;
     BluetoothAdapter bluetoothAdapter;
 
-    // Empty References for connected bluetooth devices list
+    // Empty References for paired bluetooth devices list
     private TextView tvEmptyTextView;
     private RecyclerView mRecyclerView;
-    private ArrayList<DeviceModel> connectedDeviceList;
+    private ArrayList<DeviceModel> pairedDeviceList;
     SwipeRecyclerViewAdapter SwipeAdapter;
 
     // Empty References for scanned bluetooth devices list
@@ -72,23 +100,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        connectedDevice = new ArrayList<>();
+        Bundle extrasFromDeviceSettings = getIntent().getExtras();
+
+        if(extrasFromDeviceSettings == null)
+        {
+            connectedDevicesCounter = 0;
+        }
+        else
+        {
+            connectedDevice = extrasFromDeviceSettings.getParcelableArrayList("connectedDevices");
+            connectedDevicesCounter = extrasFromDeviceSettings.getInt("connectedDevicesCounter");
+        }
+
+        notification = new NotificationCompat.Builder(this);
+        notification.setAutoCancel(true);
+
         // Connect References
         btn_AddDevice = (Button) findViewById(R.id.Btn_AddDevice);
         btn_BluetoothSwitch = (Button) findViewById(R.id.Btn_BluetoothSwitch);
         tvEmptyTextView = (TextView) findViewById(R.id.empty_view);
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
-        connectedDeviceList = new ArrayList<>();
+        pairedDeviceList = new ArrayList<>();
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+        // If buttons are clicked, go to onclick method
+        btn_AddDevice.setOnClickListener(this);
+        btn_BluetoothSwitch.setOnClickListener(this);
 
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices(); // Get list of paired deviced
+
+        // Devices with edited names are known as Alias Names. This will display the Alias name.
         for(BluetoothDevice bt : pairedDevices)
         {
             try {
                 Method method = bt.getClass().getMethod("getAliasName");
                 if(method != null)
                 {
-                    connectedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Unpaired"));
+                    pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Unpaired"));
                 }
             } catch (NoSuchMethodException e) {
                 e.printStackTrace();
@@ -98,8 +147,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 e.printStackTrace();
             }
         }
-
-
 
         createConnectedList(); // Display loadData stuff
 
@@ -114,48 +161,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             IntentFilter BTIntent = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
             registerReceiver(mBroadcastReceiver1, BTIntent);
         }
-        if(bluetoothAdapter.isEnabled())
+        else if(bluetoothAdapter.isEnabled())
         {
             btn_BluetoothSwitch.setText("Bluetooth Off");
         }
 
         //Broadcasts when bond state changes (ie:pairing)
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         registerReceiver(mBroadcastReceiver4, filter);
+        dontRun = false;
 
-        // If buttons are clicked, go to onclick method
-        btn_AddDevice.setOnClickListener(this);
-        btn_BluetoothSwitch.setOnClickListener(this);
-
-
-        //changes the color of background depending on theme class
-        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
-        constraintLayout = (ConstraintLayout) findViewById(R.id.activity_main_layout);
-        actionBar = getSupportActionBar();
-        Intent intent = getIntent();
-        themeclick = intent.getIntExtra("name", 0);
-
-        if (themeclick == 1)
-        {
-            linearLayout.setBackgroundResource(R.color.colordefault);
-            constraintLayout.setBackgroundResource(R.color.colordefault2);
-        }
-        if (themeclick == 2){
-            linearLayout.setBackgroundResource(R.color.colorBlack);
-            constraintLayout.setBackgroundResource(R.color.colorRed);
-            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#800000")));
-        }
-        if (themeclick == 3){
-            linearLayout.setBackgroundResource(R.color.colorTan);
-            constraintLayout.setBackgroundResource(R.color.colorBeach1);
-            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#4da6ff")));
-        }
-        if (themeclick == 4){
-            linearLayout.setBackgroundResource(R.color.colorFall1);
-            constraintLayout.setBackgroundResource(R.color.colorFall2);
-            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#3d0099")));
-        }
+        setTheme();
     }
+
+    //used to generate notification
+    public void createNotification()
+    {
+        //Build the notification
+        notification.setSmallIcon(R.drawable.oreo);
+        notification.setTicker("This is the ticker");
+        notification.setWhen(System.currentTimeMillis());
+        notification.setContentTitle("Lost Device Title");
+        notification.setContentText("Body of the notification");
+
+        Intent intent = new Intent(this,MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        notification.setContentIntent(pendingIntent);
+
+        //Build notification and issues it
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        nm.notify(uniqueID, notification.build());
+    }
+
 
     @Override
     public void onClick(View view)
@@ -175,6 +215,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     dialog.setTitle("Title...");
                     bluetooth_ScanList= (ListView) dialog.findViewById(R.id.Bluetooth_ScanList);
                     dialog.show();
+
+                    dialog.setOnDismissListener(new OnDismissListener()
+                    {
+
+                        @Override
+                        public void onDismiss(DialogInterface dialog)
+                        {
+                            mBTDevices = new ArrayList<>();
+                        }
+                    });
 
                     btn_Scan = (Button) dialog.findViewById(R.id.Btn_Scan);
                     btn_MakeDiscoverable = (Button) dialog.findViewById(R.id.Btn_MakeDiscoverable);
@@ -198,7 +248,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
                                 registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
                             }
-                            if(!bluetoothAdapter.isDiscovering()){
+                            else if(!bluetoothAdapter.isDiscovering()){
 
                                 //check BT permissions in manifest
                                 checkBTPermissions();
@@ -211,7 +261,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             bluetooth_ScanList.setOnItemClickListener(new OnItemClickListener()
                             {
                                 @Override
-                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l)
+                                {
                                     //first cancel discovery because its very memory intensive.
                                     bluetoothAdapter.cancelDiscovery();
 
@@ -224,14 +275,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                                     //create the bond.
                                     //NOTE: Requires API 17+? I think this is JellyBean
-                                    if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2){
+                                    if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2)
+                                    {
                                         Log.d(TAG, "Trying to pair with " + deviceName);
                                         mBTDevices.get(i).createBond();
                                     }
                                 }
                             });
-
-
                         }
                     });
 
@@ -263,16 +313,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 enableDisableBT();
                 break;
             }
-            case R.id.btn_Settings:
-            {
-
-
-                break;
-            }
         }
     }
-
-
 
     // Create a BroadcastReceiver for ACTION_FOUND
     private final BroadcastReceiver mBroadcastReceiver1 = new BroadcastReceiver()
@@ -348,9 +390,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * Broadcast Receiver for listing devices that are not yet paired
      * -Executed by btnDiscover() method.
      */
-    private BroadcastReceiver mBroadcastReceiver3 = new BroadcastReceiver() {
+    private BroadcastReceiver mBroadcastReceiver3 = new BroadcastReceiver()
+    {
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, Intent intent)
+        {
             final String action = intent.getAction();
             Log.d(TAG, "onReceive: ACTION FOUND.");
 
@@ -362,40 +406,108 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
                 bluetooth_ScanList.setAdapter(mDeviceListAdapter);
             }
+
         }
     };
 
     /**
      * Broadcast Receiver that detects bond state changes (Pairing status changes)
      */
-    private final BroadcastReceiver mBroadcastReceiver4 = new BroadcastReceiver() {
+    private final BroadcastReceiver mBroadcastReceiver4 = new BroadcastReceiver()
+    {
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, Intent intent)
+        {
             final String action = intent.getAction();
 
-            if(action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)){
+            if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED) && dontRun == false)
+            {
+                dontRun = true;
+
                 BluetoothDevice mDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                //3 cases:
-                //case1: bonded already
-                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED){
-                    Log.d(TAG, "BroadcastReceiver: BOND_BONDED.");
+
+                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING)
+                {
+                    Log.d(TAG, "BroadcastReceiver: BOND_BONDING.");
+
+                    connectedDevice.add(mDevice);
+                    connectedDevicesCounter++;
+
+                    try
+                    {
+                        connectToDevice.removeCallbacksAndMessages(null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.d(TAG, "Post Delay Error: " + ex);
+                    }
+
+                    connectToDevice = new Handler();
+
+                    connectToDevice.postDelayed(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+
+                            if(connectedDevice.get(0).getBondState()==connectedDevice.get(0).BOND_BONDED)
+                            {
+                                Log.d(TAG, "Post Delay activated for " + connectedDevice.get(0).getName());
+                                BluetoothSocket socket = null;
+
+                                try
+                                {
+                                    socket = connectedDevice.get(0).createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
+                                }
+                                catch (IOException e1)
+                                {
+                                    // TODO Auto-generated catch block
+                                    Log.d(TAG, "socket not created");
+                                    e1.printStackTrace();
+                                }
+
+                                try
+                                {
+                                    socket.connect();
+                                    Log.d(TAG,"Socket connection attempt 1 successful");
+                                    socket.close();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.d(TAG, "Socket connection attempt 1 failed: " + ex);
+
+                                    try
+                                    {
+                                        Log.d(TAG,"Trying fallback...");
+
+                                        socket =(BluetoothSocket) connectedDevice.get(0).getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(connectedDevice.get(0),1);
+                                        socket.connect();
+
+                                        Log.e(TAG,"Socket connection attempt 2 successful");
+                                        socket.close();
+                                    }
+                                    catch (Exception e2)
+                                    {
+                                        Log.e(TAG, "Socket connection attempt 1 failed: " + ex);
+                                        createNotification();
+                                        connectToDevice.removeCallbacks(this);
+                                    }
+                                }
+                            }
+                            connectToDevice.postDelayed(this, 5000);
+                        }
+                    }, 5000);
 
                     Intent startIntent = new Intent(getApplicationContext(), DeviceSettings.class);
-                    Bundle extrasForDeviceSettings = new Bundle();
-
-                    extrasForDeviceSettings.putString("DeviceAddress",mDevice.getAddress());
-                    startIntent.putExtras(extrasForDeviceSettings);
-                    startActivity(startIntent);
-
+                    startIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startIntent.putExtra("connectedDevices", connectedDevice);
+                    startIntent.putExtra("connectedDevicesCounter", connectedDevicesCounter);
+                    context.startActivity(startIntent);
                 }
-                //case2: creating a bone
-                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
-                    Log.d(TAG, "BroadcastReceiver: BOND_BONDING.");
-                }
-                //case3: breaking a bond
-                if (mDevice.getBondState() == BluetoothDevice.BOND_NONE) {
-                    Log.d(TAG, "BroadcastReceiver: BOND_NONE.");
-                }
+            }
+            else if(action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED))
+            {
+                Log.d(TAG,"Disconnected");
             }
         }
     };
@@ -462,7 +574,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.addItemDecoration(new DividerItemDecoration(getResources().getDrawable(R.drawable.divider)));
 
-        if(connectedDeviceList.isEmpty()){
+        if(pairedDeviceList.isEmpty()){
             mRecyclerView.setVisibility(View.GONE);
             tvEmptyTextView.setVisibility(View.VISIBLE);
         }else{
@@ -471,7 +583,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         //creating adapter object
-        SwipeAdapter = new SwipeRecyclerViewAdapter(this, connectedDeviceList);
+        SwipeAdapter = new SwipeRecyclerViewAdapter(this, pairedDeviceList);
 
 
         // Setting Mode to Single to reveal bottom View for one item in List
@@ -526,6 +638,52 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return true;
         }
         return true;
+    }
+
+    public void setTheme()
+    {
+        // Get which theme was chosen by User previously
+        try
+        {
+            File file = getFileStreamPath("themes.txt");
+            FileInputStream reader = openFileInput(file.getName());
+
+            String content = "";
+
+            byte[] input = new byte[reader.available()];
+            while (reader.read(input) != -1) {}
+            content += new String(input);
+            themeclick = Integer.parseInt(content);
+        }
+        catch (IOException e) {
+            Log.e("Exception", "File Read failed: " + e.toString());
+        }
+
+        //changes the color of background depending on theme class
+        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+        constraintLayout = (ConstraintLayout) findViewById(R.id.activity_main_layout);
+        actionBar = getSupportActionBar();
+
+        if (themeclick == 1)
+        {
+            linearLayout.setBackgroundResource(R.color.colordefault);
+            constraintLayout.setBackgroundResource(R.color.colordefault2);
+        }
+        if (themeclick == 2){
+            linearLayout.setBackgroundResource(R.color.colorBlack);
+            constraintLayout.setBackgroundResource(R.color.colorRed);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#800000")));
+        }
+        if (themeclick == 3){
+            linearLayout.setBackgroundResource(R.color.colorTan);
+            constraintLayout.setBackgroundResource(R.color.colorBeach1);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#4da6ff")));
+        }
+        if (themeclick == 4){
+            linearLayout.setBackgroundResource(R.color.colorFall1);
+            constraintLayout.setBackgroundResource(R.color.colorFall2);
+            actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#3d0099")));
+        }
     }
 
 
