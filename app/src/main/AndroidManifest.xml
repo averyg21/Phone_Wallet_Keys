@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.averygrimes.phone_wallet_keys">
-    
+
     <uses-feature android:name="android.hardware.bluetooth" />
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -24,11 +25,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".DeviceSettings"></activity>
-        <activity android:name=".Setting"></activity>
-        <activity android:name=".History"></activity>
-        <activity android:name=".Themes"></activity>
-        <activity android:name=".Help"></activity>
+        <activity android:name=".DeviceSettings" />
+        <activity android:name=".Setting" />
+        <activity android:name=".History" />
+        <activity android:name=".Themes" />
+        <activity android:name=".Help" />
+        <activity
+            android:name=".NotificationsList"
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>
