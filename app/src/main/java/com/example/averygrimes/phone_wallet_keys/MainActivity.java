@@ -3,13 +3,20 @@ package com.example.averygrimes.phone_wallet_keys;
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
+import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
+import java.util.Date;
+
+import android.net.Uri;
 import android.nfc.Tag;
 import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -32,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.lang.String;
 //NEW
+import java.util.Stack;
 import java.util.UUID;
 import android.widget.LinearLayout;
 import android.support.constraint.ConstraintLayout;
@@ -55,13 +63,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 {
     private static final String TAG = "MainActivity";
 
+    String deviceAddress;
+
     //Empty References for connected bluetooth devices list
     public ArrayList<BluetoothDevice> connectedDevice;
     int connectedDevicesCounter;
 
-    // Handler for connecting to devices
-    Handler connectToDevice;
-    boolean dontRun;
 
     // Used for sending notification to phone
     NotificationCompat.Builder notification;
@@ -69,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // Used to connect to the bluetooth device
     private static final UUID MY_UUID_INSECURE =
-            UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB");
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     // Empty References
     private Button btn_AddDevice, btn_BluetoothSwitch, btn_Scan, btn_MakeDiscoverable;
@@ -94,27 +101,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     View view;
     int themeclick;
 
+    //Access the database
+    Database myDb;
+
+    Uri uriSound;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        connectedDevice = new ArrayList<>();
         Bundle extrasFromDeviceSettings = getIntent().getExtras();
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if(extrasFromDeviceSettings == null)
         {
-            connectedDevicesCounter = 0;
+
         }
         else
         {
-            connectedDevice = extrasFromDeviceSettings.getParcelableArrayList("connectedDevices");
-            connectedDevicesCounter = extrasFromDeviceSettings.getInt("connectedDevicesCounter");
-        }
+            deviceAddress = extrasFromDeviceSettings.getString("deviceAddress");
 
-        notification = new NotificationCompat.Builder(this);
-        notification.setAutoCancel(true);
+            if(extrasFromDeviceSettings.containsKey("NotificationSound"))
+            {
+                uriSound = extrasFromDeviceSettings.getParcelable("NotificationSound");
+            }
+            //Thread myThread = new Thread(connectToDevice2);
+            //myThread.start();
+        }
 
         // Connect References
         btn_AddDevice = (Button) findViewById(R.id.Btn_AddDevice);
@@ -122,28 +137,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tvEmptyTextView = (TextView) findViewById(R.id.empty_view);
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
         pairedDeviceList = new ArrayList<>();
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         // If buttons are clicked, go to onclick method
         btn_AddDevice.setOnClickListener(this);
         btn_BluetoothSwitch.setOnClickListener(this);
+
+        //access database class
+        myDb = new Database(this);
 
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices(); // Get list of paired deviced
 
         // Devices with edited names are known as Alias Names. This will display the Alias name.
         for(BluetoothDevice bt : pairedDevices)
         {
-            try {
+            try
+            {
                 Method method = bt.getClass().getMethod("getAliasName");
+
                 if(method != null)
                 {
-                    pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Unpaired"));
+                    if(deviceAddress != null && deviceAddress.equals(bt.getAddress()))
+                    {
+                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Connected"));
+                    }
+                    else
+                    {
+                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Disconnected"));
+                    }
                 }
-            } catch (NoSuchMethodException e) {
+            }
+            catch (NoSuchMethodException e)
+            {
                 e.printStackTrace();
-            } catch (InvocationTargetException e) {
+            }
+            catch (InvocationTargetException e)
+            {
                 e.printStackTrace();
-            } catch (IllegalAccessException e) {
+            }
+            catch (IllegalAccessException e)
+            {
                 e.printStackTrace();
             }
         }
@@ -171,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         registerReceiver(mBroadcastReceiver4, filter);
-        dontRun = false;
+
 
         setTheme();
     }
@@ -179,8 +211,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //used to generate notification
     public void createNotification()
     {
+        notification = new NotificationCompat.Builder(this);
+        notification.setAutoCancel(true);
+
         //Build the notification
-        notification.setSmallIcon(R.drawable.logoteam);
+        notification.setSmallIcon(R.drawable.oreo);
         notification.setTicker("This is the ticker");
         notification.setWhen(System.currentTimeMillis());
         notification.setContentTitle("Lost Device Title");
@@ -214,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     dialog.setContentView(R.layout.popup_window);
                     dialog.setTitle("Title...");
                     bluetooth_ScanList= (ListView) dialog.findViewById(R.id.Bluetooth_ScanList);
+                    dialog.setCancelable(false);
                     dialog.show();
 
                     dialog.setOnDismissListener(new OnDismissListener()
@@ -260,6 +296,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             bluetooth_ScanList.setOnItemClickListener(new OnItemClickListener()
                             {
+                                @RequiresApi(api = Build.VERSION_CODES.N)
                                 @Override
                                 public void onItemClick(AdapterView<?> adapterView, View view, int i, long l)
                                 {
@@ -272,6 +309,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                                     Log.d(TAG, "onItemClick: deviceName = " + deviceName);
                                     Log.d(TAG, "onItemClick: deviceAddress = " + deviceAddress);
+
+                                    //when device is added will show up on the database table
+                                    String Dname = deviceName.toString();
+                                    //String Dstatus = "";
+                                    Date d=new Date();
+                                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                                    String currentDateTimeString = sdf.format(d);
+                                    String Dtime = currentDateTimeString;
+
+                                    Calendar c = Calendar.getInstance();
+                                    SimpleDateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+                                    String formattedDate = df.format(c.getTime());
+                                    String Ddate = formattedDate;
+
+                                    AddData(Dname,Dtime,Ddate);
 
                                     //create the bond.
                                     //NOTE: Requires API 17+? I think this is JellyBean
@@ -301,7 +353,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     });
 
-                    //connectedDeviceList.add(new DeviceModel("Device " + deviceTotal, "Status"));
                     mRecyclerView.setAdapter(SwipeAdapter);
                 }
 
@@ -419,91 +470,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onReceive(Context context, Intent intent)
         {
             final String action = intent.getAction();
+            BluetoothDevice mDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-            if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED) && dontRun == false)
+
+            if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED))
             {
-                dontRun = true;
+                //final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
-                BluetoothDevice mDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                deviceAddress = mDevice.getAddress();
 
-                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING)
-                {
-                    Log.d(TAG, "BroadcastReceiver: BOND_BONDING.");
-
-                    connectedDevice.add(mDevice);
-                    connectedDevicesCounter++;
-
-                    try
-                    {
-                        connectToDevice.removeCallbacksAndMessages(null);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.d(TAG, "Post Delay Error: " + ex);
-                    }
-
-                    connectToDevice = new Handler();
-
-                    connectToDevice.postDelayed(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-
-                            if(connectedDevice.get(0).getBondState()==connectedDevice.get(0).BOND_BONDED)
-                            {
-                                Log.d(TAG, "Post Delay activated for " + connectedDevice.get(0).getName());
-                                BluetoothSocket socket = null;
-
-                                try
-                                {
-                                    socket = connectedDevice.get(0).createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
-                                }
-                                catch (IOException e1)
-                                {
-                                    // TODO Auto-generated catch block
-                                    Log.d(TAG, "socket not created");
-                                    e1.printStackTrace();
-                                }
-
-                                try
-                                {
-                                    socket.connect();
-                                    Log.d(TAG,"Socket connection attempt 1 successful");
-                                    socket.close();
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.d(TAG, "Socket connection attempt 1 failed: " + ex);
-
-                                    try
-                                    {
-                                        Log.d(TAG,"Trying fallback...");
-
-                                        socket =(BluetoothSocket) connectedDevice.get(0).getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(connectedDevice.get(0),1);
-                                        socket.connect();
-
-                                        Log.e(TAG,"Socket connection attempt 2 successful");
-                                        socket.close();
-                                    }
-                                    catch (Exception e2)
-                                    {
-                                        Log.e(TAG, "Socket connection attempt 1 failed: " + ex);
-                                        createNotification();
-                                        connectToDevice.removeCallbacks(this);
-                                    }
-                                }
-                            }
-                            connectToDevice.postDelayed(this, 5000);
-                        }
-                    }, 5000);
-
-                    Intent startIntent = new Intent(getApplicationContext(), DeviceSettings.class);
-                    startIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startIntent.putExtra("connectedDevices", connectedDevice);
-                    startIntent.putExtra("connectedDevicesCounter", connectedDevicesCounter);
-                    context.startActivity(startIntent);
-                }
+                Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
+                startIntent.putExtra("deviceAddress", mDevice.getAddress());
+                getApplicationContext().startActivity(startIntent);
             }
             else if(action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED))
             {
@@ -686,6 +664,84 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    public void AddData(String bName, String bTime, String bDate){
+        boolean insertData = myDb.addData(bName,bTime,bDate);
 
+        if(insertData==true){
+            Toast.makeText(MainActivity.this,"Successfully Entered Data!",Toast.LENGTH_LONG).show();
+        }else{
+            Toast.makeText(MainActivity.this,"Something went wrong :(",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /*public Runnable connectToDevice2 = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
+            while(true)
+            {
+            Log.d(TAG, bluetoothDevice.getName());
+            BluetoothSocket socket = null;
+
+            try
+            {
+                socket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
+            }
+            catch (IOException e1)
+            {
+                Log.d(TAG, "socket not created");
+                e1.printStackTrace();
+            }
+
+            try
+            {
+                socket.connect();
+                Log.e("", "Connected");
+            }
+            catch (IOException e)
+            {
+                Log.e("", e.getMessage());
+
+                try
+                {
+                    Log.e("", "trying fallback...");
+
+                    socket = (BluetoothSocket) bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bluetoothDevice, 1);
+                    socket.connect();
+                    Log.e("", "Connected");
+                }
+                catch (Exception e2)
+                {
+                    createNotification();
+                    Log.e("", "Couldn't establish Bluetooth connection!");
+                }
+            }
+
+
+                try
+                {
+                    socket.close();
+                }
+                catch (Exception ex)
+                {
+                    Log.e("", "Couldn't Close Socket!");
+                }
+
+                if(socket.isConnected() == false)
+                {
+                    //createNotification();
+                }
+
+                try
+                {
+                    Thread.sleep(5000);
+                } catch (Exception ex) {
+
+                }
+            }
+        }
+    };*/
 
 }
