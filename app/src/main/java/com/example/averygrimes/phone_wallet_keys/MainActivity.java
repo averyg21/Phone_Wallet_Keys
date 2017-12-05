@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void createNotification()
     {
         //Build the notification
-        notification.setSmallIcon(R.drawable.oreo);
+        notification.setSmallIcon(R.drawable.logoteam);
         notification.setTicker("This is the ticker");
         notification.setWhen(System.currentTimeMillis());
         notification.setContentTitle("Lost Device Title");
