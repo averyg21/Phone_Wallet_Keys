@@ -138,12 +138,17 @@ public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecycler
             }
         });
         
-        viewHolder.tvSnooze.setOnClickListener(new View.OnClickListener() {
+        viewHolder.tvSnooze.setOnClickListener(new View.OnClickListener()
+        {
             @Override
-            public void onClick(View view) {
-                
-                //Toast.makeText(view.getContext(), "Clicked on Edit  " + viewHolder.tvName.getText().toString(), Toast.LENGTH_SHORT).show();
+            public void onClick(View view)
+            {
 
+                if(viewHolder.tvStatus.getText().toString().equals("Connected"))
+                {
+                    viewHolder.tvStatus.setText("Snoozed");
+                    viewHolder.tvSnooze.setText("Unsnooze");
+                }
 
             }
         });
