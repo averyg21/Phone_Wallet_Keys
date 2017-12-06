@@ -8,10 +8,12 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,33 +24,37 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
 import android.app.AlertDialog;
 import android.widget.Switch;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 
 
 public class DeviceSettings extends AppCompatActivity implements View.OnClickListener
 {
     private static final String TAG = "DeviceSettings";
-    Button btn_DeviceSettings_OnOff, btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Notification, btn_DeviceSettings_SnoozeTimer;
+    Button btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Notification, btn_DeviceSettings_SnoozeTimer;
 
 
     BluetoothAdapter bluetoothAdapter;
-    int connectedDevicesCounter;
     String deviceAddress;
-    Stack<String> stack;
     Thread myThread;
-    boolean shouldContinue;
+    String connectedDeviceAddress;
 
     // Used to connect to the bluetooth device
     private static final UUID MY_UUID_INSECURE =
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    Handler handler;
     Uri uriSound;
 
     // Used for sending notification to phone
@@ -62,7 +68,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device_settings);
 
-
         myThread = new Thread(connectToDevice);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -70,9 +75,9 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
         deviceAddress = extrasForDeviceSettings.getString("deviceAddress");
 
-        if(extrasForDeviceSettings.containsKey("NotificationSound"))
+        if(extrasForDeviceSettings.containsKey("ConnectedDeviceAddress"))
         {
-            uriSound = extrasForDeviceSettings.getParcelable("NotificationSound");
+            connectedDeviceAddress = extrasForDeviceSettings.getString("ConnectedDeviceAddress");
         }
 
         final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
@@ -82,23 +87,21 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         btn_DeviceSettings_Delete = (Button) findViewById(R.id.btn_DeviceSettings_Delete);
         btn_DeviceSettings_EditName = (Button) findViewById(R.id.btn_DeviceSettings_EditName);
         btn_DeviceSettings_Notification = (Button) findViewById(R.id.btn_DeviceSettings_Notification);
-        btn_DeviceSettings_SnoozeTimer = (Button) findViewById(R.id.btn_DeviceSettings_SnoozeTimer);
 
         btn_DeviceSettings_Delete.setOnClickListener(this);
         btn_DeviceSettings_EditName.setOnClickListener(this);
         btn_DeviceSettings_Notification.setOnClickListener(this);
-        btn_DeviceSettings_SnoozeTimer.setOnClickListener(this);
-
-        shouldContinue = true;
     }
 
     public Runnable connectToDevice = new Runnable()
     {
         @Override
-        public void run() {
+        public void run()
+        {
             final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
-            while (shouldContinue) {
+            while (true)
+            {
                 Log.d(TAG, bluetoothDevice.getName());
                 BluetoothSocket socket = null;
 
@@ -137,7 +140,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                 }
 
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(5000);
                 } catch (Exception ex)
                 {
                     return;
@@ -146,11 +149,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         }
 
     };
-
-    public void StopThread()
-    {
-        myThread.stop();
-    }
 
     //The menu bar will show on the top right
     @Override
@@ -173,20 +171,23 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
                 if(isChecked)
                 {
-
-
-
-                    //Intent startIntent = new Intent(getApplicationContext(), Connect.class);
-                    //startIntent.putExtra("deviceAddress", deviceAddress);
-                    //getApplicationContext().startActivity(startIntent);
                     myThread = new Thread(connectToDevice);
                     myThread.start();
+                    connectedDeviceAddress = deviceAddress;
                 }
                 else
                 {
+                    myThread.interrupt();
+                    connectedDeviceAddress = null;
+                }
+
 
                 }
-            }
+                //else
+                //{
+
+                //}
+            //}
         });
         return true;
     }
@@ -194,17 +195,52 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
     //used to generate notification
     public void createNotification()
     {
-        if(uriSound == null)
-        {
-            uriSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        }
-        else
-        {
+        String content = "";
+        File file = getFileStreamPath("NotificationSound.txt");
+        String[] notificationList = new String[1];
 
+        try
+        {
+            if (!file.exists())
+            {
+                uriSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            else
+            {
+                FileInputStream reader = openFileInput(file.getName());
+
+                byte[] input = new byte[reader.available()];
+                while (reader.read(input) != -1) {}
+
+                content += new String(input);
+
+                notificationList = content.split(",");
+
+                String[] temp;
+                for(int i = 0; i < notificationList.length; i++)
+                {
+                    temp = notificationList[i].split("\\|");
+
+                    if(temp[0].equals(deviceAddress))
+                    {
+                        uriSound = Uri.parse(temp[1]);
+                    }
+                }
+            }
+
+        }
+        catch (IOException e)
+        {
+            Log.e("Exception", "File Read failed: " + e.toString());
         }
 
         Intent intent = new Intent(this,DeviceSettings.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent, 0);
+
+        //Build the large notification
+        Drawable drawable= ContextCompat.getDrawable(this,R.drawable.logoteam);
+
+        Bitmap bitmap = ((BitmapDrawable)drawable).getBitmap();
 
         notification = new NotificationCompat.Builder(this);
         notification.setAutoCancel(true);
@@ -216,8 +252,10 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         notification.setWhen(System.currentTimeMillis());
         notification.setContentTitle("Lost Device Title");
         notification.setContentText("Body of the notification");
-
+        notification.setLargeIcon(bitmap);
         notification.setContentIntent(pendingIntent);
+        long[] pattern = {500,500,500,500,500,500,500,500,500};
+        notification.setVibrate(pattern);
 
         //Build notification and issues it
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -248,8 +286,20 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                                     e.printStackTrace();
                                 }
 
-                                Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
-                                startActivity(startIntent);
+                                final Switch sw = (Switch) findViewById(R.id.action_switch);
+
+                                Context context = getBaseContext();
+                                Intent intent = new Intent(context, MainActivity.class);
+
+                                if(connectedDeviceAddress != null)
+                                {
+                                    intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
+                                    context.startActivity(intent);
+                                }
+                                else
+                                {
+                                    context.startActivity(intent);
+                                }
                             }
                         })
                         .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -323,14 +373,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                 Intent startIntent = new Intent(getApplicationContext(), NotificationsList.class);
                 startIntent.putExtra("deviceAddress", deviceAddress);
                 context.startActivity(startIntent);
-
-                break;
-            }
-            case R.id.btn_DeviceSettings_SnoozeTimer:
-            {
-
-
-                break;
             }
         }
     }
@@ -345,16 +387,13 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
         if(sw.isChecked())
         {
-            intent.putExtra("deviceAddress", deviceAddress);
+            intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
+            context.startActivity(intent);
         }
-
-        if(uriSound != null)
+        else
         {
-            intent.putExtra("NotificationSound", uriSound);
+            finish();
         }
-
-        context.startActivity(intent);
-        //finish();
     }
 }
 
