@@ -213,13 +213,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     {
         notification = new NotificationCompat.Builder(this);
         notification.setAutoCancel(true);
+        
+        //Build the large notification
+        Drawable drawable= ContextCompat.getDrawable(this,R.drawable.logoteam);
 
-        //Build the notification
+        Bitmap bitmap = ((BitmapDrawable)drawable).getBitmap();
+        
         notification.setSmallIcon(R.drawable.logoteam);
         notification.setTicker("This is the ticker");
         notification.setWhen(System.currentTimeMillis());
         notification.setContentTitle("Lost Device Title");
         notification.setContentText("Body of the notification");
+        notification.setLargeIcon(bitmap);
 
         Intent intent = new Intent(this,MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent,
