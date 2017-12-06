@@ -22,9 +22,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
 import android.app.AlertDialog;
@@ -70,11 +75,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
         deviceAddress = extrasForDeviceSettings.getString("deviceAddress");
 
-        if(extrasForDeviceSettings.containsKey("NotificationSound"))
-        {
-            uriSound = extrasForDeviceSettings.getParcelable("NotificationSound");
-        }
-
         final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
         getSupportActionBar().setTitle(bluetoothDevice.getName());
@@ -82,12 +82,10 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         btn_DeviceSettings_Delete = (Button) findViewById(R.id.btn_DeviceSettings_Delete);
         btn_DeviceSettings_EditName = (Button) findViewById(R.id.btn_DeviceSettings_EditName);
         btn_DeviceSettings_Notification = (Button) findViewById(R.id.btn_DeviceSettings_Notification);
-        btn_DeviceSettings_SnoozeTimer = (Button) findViewById(R.id.btn_DeviceSettings_SnoozeTimer);
 
         btn_DeviceSettings_Delete.setOnClickListener(this);
         btn_DeviceSettings_EditName.setOnClickListener(this);
         btn_DeviceSettings_Notification.setOnClickListener(this);
-        btn_DeviceSettings_SnoozeTimer.setOnClickListener(this);
 
         shouldContinue = true;
     }
@@ -147,11 +145,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
     };
 
-    public void StopThread()
-    {
-        myThread.stop();
-    }
-
     //The menu bar will show on the top right
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -179,14 +172,77 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                     //Intent startIntent = new Intent(getApplicationContext(), Connect.class);
                     //startIntent.putExtra("deviceAddress", deviceAddress);
                     //getApplicationContext().startActivity(startIntent);
-                    myThread = new Thread(connectToDevice);
-                    myThread.start();
-                }
-                else
-                {
+                    //myThread = new Thread(connectToDevice);
+                    //myThread.start();
+
+
+                    //while (shouldContinue) {
+                        Log.d(TAG, bluetoothDevice.getName());
+                        BluetoothSocket socket = null;
+
+                        try
+                        {
+                            socket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
+                        }
+                        catch (IOException e1)
+                        {
+                            Log.d(TAG, "socket not created");
+                            e1.printStackTrace();
+                        }
+
+                        try
+                        {
+                            socket.connect();
+                            Log.e("", "Connected");
+                        }
+                        catch (IOException e)
+                        {
+                            Log.e("", e.getMessage());
+
+                            try
+                            {
+                                Log.e("", "trying fallback...");
+
+                                socket = (BluetoothSocket) bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bluetoothDevice, 1);
+                                socket.connect();
+                                Log.e("", "Connected");
+                            }
+                            catch (Exception e2)
+                            {
+                                createNotification();
+
+                                Log.d("", "Couldn't establish Bluetooth connection!: " + e2);
+                                return;
+                            }
+                        }
+
+
+                        try
+                        {
+                            socket.close();
+                        }
+                        catch (Exception ex)
+                        {
+
+                        }
+
+                        /*try
+                        {
+                            Thread.sleep(5000);
+                        }
+                        catch (Exception ex)
+                        {
+                            return;
+                        }*/
+                    }
+
 
                 }
-            }
+                //else
+                //{
+
+                //}
+            //}
         });
         return true;
     }
@@ -194,13 +250,43 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
     //used to generate notification
     public void createNotification()
     {
-        if(uriSound == null)
-        {
-            uriSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        }
-        else
-        {
+        String content = "";
+        File file = getFileStreamPath("NotificationSound.txt");
+        String[] notificationList = new String[1];
 
+        try
+        {
+            if (!file.exists())
+            {
+                uriSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            else
+            {
+                FileInputStream reader = openFileInput(file.getName());
+
+                byte[] input = new byte[reader.available()];
+                while (reader.read(input) != -1) {}
+
+                content += new String(input);
+
+                notificationList = content.split(",");
+            }
+
+        }
+        catch (IOException e)
+        {
+            Log.e("Exception", "File Read failed: " + e.toString());
+        }
+
+        String[] temp;
+        for(int i = 0; i < notificationList.length; i++)
+        {
+            temp = notificationList[i].split("\\|");
+
+            if(temp[0].equals(deviceAddress))
+            {
+                uriSound = Uri.parse(temp[1]);
+            }
         }
 
         Intent intent = new Intent(this,DeviceSettings.class);
@@ -323,14 +409,6 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                 Intent startIntent = new Intent(getApplicationContext(), NotificationsList.class);
                 startIntent.putExtra("deviceAddress", deviceAddress);
                 context.startActivity(startIntent);
-
-                break;
-            }
-            case R.id.btn_DeviceSettings_SnoozeTimer:
-            {
-
-
-                break;
             }
         }
     }
@@ -348,13 +426,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             intent.putExtra("deviceAddress", deviceAddress);
         }
 
-        if(uriSound != null)
-        {
-            intent.putExtra("NotificationSound", uriSound);
-        }
-
         context.startActivity(intent);
-        //finish();
     }
 }
 
