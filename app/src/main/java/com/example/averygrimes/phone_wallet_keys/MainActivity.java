@@ -8,7 +8,10 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import java.util.Date;
@@ -18,6 +21,7 @@ import android.nfc.Tag;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -230,6 +234,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         notification.setContentIntent(pendingIntent);
+        long[] pattern = {500,500,500,500,500,500,500,500,500};
+        notification.setVibrate(pattern);
 
         //Build notification and issues it
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -254,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     dialog.setContentView(R.layout.popup_window);
                     dialog.setTitle("Title...");
                     bluetooth_ScanList= (ListView) dialog.findViewById(R.id.Bluetooth_ScanList);
-                    dialog.setCancelable(false);
+                    //dialog.setCancelable(false);
                     dialog.show();
 
                     dialog.setOnDismissListener(new OnDismissListener()
@@ -292,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             else if(!bluetoothAdapter.isDiscovering()){
 
                                 //check BT permissions in manifest
-                                checkBTPermissions();
+                                //checkBTPermissions();
 
                                 bluetoothAdapter.startDiscovery();
                                 IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -679,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    /*public Runnable connectToDevice2 = new Runnable()
+    public Runnable connectToDevice2 = new Runnable()
     {
         @Override
         public void run()
@@ -736,7 +742,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(socket.isConnected() == false)
                 {
-                    //createNotification();
+                    createNotification();
                 }
 
                 try
@@ -747,6 +753,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
-    };*/
+    };
 
 }
