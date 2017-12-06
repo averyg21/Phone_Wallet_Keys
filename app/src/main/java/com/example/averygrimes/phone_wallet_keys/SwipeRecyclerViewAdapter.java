@@ -149,7 +149,11 @@ public class SwipeRecyclerViewAdapter extends RecyclerSwipeAdapter<SwipeRecycler
                     viewHolder.tvStatus.setText("Snoozed");
                     viewHolder.tvSnooze.setText("Unsnooze");
                 }
-
+                else if(viewHolder.tvStatus.getText().toString().equals("Snoozed"))
+                {
+                    viewHolder.tvStatus.setText("Connected");
+                    viewHolder.tvSnooze.setText("Snooze");
+                }
             }
         });
         
