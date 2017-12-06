@@ -15,6 +15,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import android.widget.Switch;
 import android.widget.TextView.BufferType;
 
 
@@ -97,8 +99,15 @@ public class Themes extends AppCompatActivity implements View.OnClickListener
             Log.e("Exception", "File write failed: " + e.toString());
         }
 
-        Intent myIntent = new Intent(Themes.this, MainActivity.class);
-        startActivity(myIntent);
+        //Intent myIntent = new Intent(Themes.this, MainActivity.class);
+        //startActivity(myIntent);
+        finish();
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        finish();
     }
 
 

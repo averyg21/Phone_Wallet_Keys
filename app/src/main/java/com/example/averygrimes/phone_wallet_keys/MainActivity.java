@@ -3,25 +3,17 @@ package com.example.averygrimes.phone_wallet_keys;
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import java.util.Date;
-
 import android.net.Uri;
-import android.nfc.Tag;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -33,7 +25,6 @@ import android.widget.TextView;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.daimajia.swipe.util.Attributes;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -42,13 +33,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
 import java.lang.String;
-//NEW
-import java.util.Stack;
 import java.util.UUID;
 import android.widget.LinearLayout;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.ActionBar;
-
 import android.widget.Toast;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -60,19 +48,15 @@ import android.widget.ListView;
 import android.app.Dialog;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
-import android.os.*;
 import android.content.DialogInterface.OnDismissListener;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
 {
     private static final String TAG = "MainActivity";
 
     String deviceAddress;
-
-    //Empty References for connected bluetooth devices list
-    public ArrayList<BluetoothDevice> connectedDevice;
-    int connectedDevicesCounter;
-
+    String connectedDeviceAddress;
 
     // Used for sending notification to phone
     NotificationCompat.Builder notification;
@@ -127,12 +111,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         {
             deviceAddress = extrasFromDeviceSettings.getString("deviceAddress");
 
-            if(extrasFromDeviceSettings.containsKey("NotificationSound"))
+            if(extrasFromDeviceSettings.containsKey("ConnectedDeviceAddress"))
             {
-                uriSound = extrasFromDeviceSettings.getParcelable("NotificationSound");
+                connectedDeviceAddress = extrasFromDeviceSettings.getString("ConnectedDeviceAddress");
             }
-            //Thread myThread = new Thread(connectToDevice2);
-            //myThread.start();
         }
 
         // Connect References
@@ -149,42 +131,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //access database class
         myDb = new Database(this);
 
-        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices(); // Get list of paired deviced
-
-        // Devices with edited names are known as Alias Names. This will display the Alias name.
-        for(BluetoothDevice bt : pairedDevices)
-        {
-            try
-            {
-                Method method = bt.getClass().getMethod("getAliasName");
-
-                if(method != null)
-                {
-                    if(deviceAddress != null && deviceAddress.equals(bt.getAddress()))
-                    {
-                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Connected"));
-                    }
-                    else
-                    {
-                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Disconnected"));
-                    }
-                }
-            }
-            catch (NoSuchMethodException e)
-            {
-                e.printStackTrace();
-            }
-            catch (InvocationTargetException e)
-            {
-                e.printStackTrace();
-            }
-            catch (IllegalAccessException e)
-            {
-                e.printStackTrace();
-            }
-        }
-
-        createConnectedList(); // Display loadData stuff
+        createConnectedList(deviceAddress); // Display loadData stuff
 
         // Ask to turn on bluetooth if it is off at the start
         if(!bluetoothAdapter.isEnabled())
@@ -217,25 +164,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     {
         notification = new NotificationCompat.Builder(this);
         notification.setAutoCancel(true);
-        
-        //Build the large notification
-        Drawable drawable= ContextCompat.getDrawable(this,R.drawable.logoteam);
 
-        Bitmap bitmap = ((BitmapDrawable)drawable).getBitmap();
-        
-        notification.setSmallIcon(R.drawable.logoteam);
+        //Build the notification
+        notification.setSmallIcon(R.drawable.oreo);
         notification.setTicker("This is the ticker");
         notification.setWhen(System.currentTimeMillis());
         notification.setContentTitle("Lost Device Title");
         notification.setContentText("Body of the notification");
-        notification.setLargeIcon(bitmap);
 
         Intent intent = new Intent(this,MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         notification.setContentIntent(pendingIntent);
-        long[] pattern = {500,500,500,500,500,500,500,500,500};
-        notification.setVibrate(pattern);
 
         //Build notification and issues it
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -260,7 +200,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     dialog.setContentView(R.layout.popup_window);
                     dialog.setTitle("Title...");
                     bluetooth_ScanList= (ListView) dialog.findViewById(R.id.Bluetooth_ScanList);
-                    //dialog.setCancelable(false);
                     dialog.show();
 
                     dialog.setOnDismissListener(new OnDismissListener()
@@ -298,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             else if(!bluetoothAdapter.isDiscovering()){
 
                                 //check BT permissions in manifest
-                                //checkBTPermissions();
+                                checkBTPermissions();
 
                                 bluetoothAdapter.startDiscovery();
                                 IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -335,6 +274,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     String Ddate = formattedDate;
 
                                     AddData(Dname,Dtime,Ddate);
+                                    createConnectedList(deviceAddress);
 
                                     //create the bond.
                                     //NOTE: Requires API 17+? I think this is JellyBean
@@ -463,10 +403,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (action.equals(BluetoothDevice.ACTION_FOUND))
             {
                 BluetoothDevice device = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
-                mBTDevices.add(device);
-                Log.d(TAG, "onReceive: " + device.getName() + ": " + device.getAddress());
-                mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
-                bluetooth_ScanList.setAdapter(mDeviceListAdapter);
+
+                if(device.getName() != null)
+                {
+                    mBTDevices.add(device);
+                    Log.d(TAG, "onReceive: " + device.getName() + ": " + device.getAddress());
+                    mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, mBTDevices);
+                    bluetooth_ScanList.setAdapter(mDeviceListAdapter);
+                }
             }
 
         }
@@ -481,18 +425,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onReceive(Context context, Intent intent)
         {
             final String action = intent.getAction();
-            BluetoothDevice mDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            BluetoothDevice device = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
 
+            //ProgressDialog mProgressDialog = ProgressDialog.show(context,"Pairing Bluetooth Device"
+              //     ,"Please Wait...",true);
+
+            try
+            {
+                //Thread.sleep(2000);
+            }
+            catch (Exception ex)
+            {
+
+            }
 
             if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED))
             {
-                //final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
-                deviceAddress = mDevice.getAddress();
-
-                Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
-                startIntent.putExtra("deviceAddress", mDevice.getAddress());
-                getApplicationContext().startActivity(startIntent);
             }
             else if(action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED))
             {
@@ -557,9 +506,76 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         unregisterReceiver(mBroadcastReceiver4);
         //mBluetoothAdapter.cancelDiscovery();
     }
-    
-    public void createConnectedList()
+
+
+    public void createConnectedList(String deviceAddress)
     {
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices(); // Get list of paired deviced
+
+        // Devices with edited names are known as Alias Names. This will display the Alias name.
+        for(BluetoothDevice bt : pairedDevices)
+        {
+            try
+            {
+                Method method = bt.getClass().getMethod("getAliasName");
+
+                if(method != null)
+                {
+                    if(connectedDeviceAddress != null && connectedDeviceAddress.equals(bt.getAddress()))
+                    {
+                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Connected"));
+                    }
+                    else
+                    {
+                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bt), "Disconnected"));
+                    }
+                }
+            }
+            catch (NoSuchMethodException e)
+            {
+                e.printStackTrace();
+            }
+            catch (InvocationTargetException e)
+            {
+                e.printStackTrace();
+            }
+            catch (IllegalAccessException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        if(deviceAddress != null)
+        {
+            BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
+
+            if(!pairedDevices.contains(bluetoothDevice))
+            {
+                try
+                {
+                    Method method = bluetoothDevice.getClass().getMethod("getAliasName");
+
+                    if(method != null)
+                    {
+                        pairedDeviceList.add(new DeviceModel((String)method.invoke(bluetoothDevice), "Disconnected"));
+                    }
+                }
+                catch (NoSuchMethodException e)
+                {
+                    e.printStackTrace();
+                }
+                catch (InvocationTargetException e)
+                {
+                    e.printStackTrace();
+                }
+                catch (IllegalAccessException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.addItemDecoration(new DividerItemDecoration(getResources().getDrawable(R.drawable.divider)));
 
@@ -572,7 +588,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         //creating adapter object
-        SwipeAdapter = new SwipeRecyclerViewAdapter(this, pairedDeviceList);
+        SwipeAdapter = new SwipeRecyclerViewAdapter(MainActivity.this, pairedDeviceList);
 
 
         // Setting Mode to Single to reveal bottom View for one item in List
@@ -675,7 +691,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public void AddData(String bName, String bTime, String bDate){
+    public void AddData(String bName, String bTime, String bDate)
+    {
         boolean insertData = myDb.addData(bName,bTime,bDate);
 
         if(insertData==true){
@@ -684,75 +701,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(MainActivity.this,"Something went wrong :(",Toast.LENGTH_LONG).show();
         }
     }
-
-    public Runnable connectToDevice2 = new Runnable()
-    {
-        @Override
-        public void run()
-        {
-            final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
-            while(true)
-            {
-            Log.d(TAG, bluetoothDevice.getName());
-            BluetoothSocket socket = null;
-
-            try
-            {
-                socket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
-            }
-            catch (IOException e1)
-            {
-                Log.d(TAG, "socket not created");
-                e1.printStackTrace();
-            }
-
-            try
-            {
-                socket.connect();
-                Log.e("", "Connected");
-            }
-            catch (IOException e)
-            {
-                Log.e("", e.getMessage());
-
-                try
-                {
-                    Log.e("", "trying fallback...");
-
-                    socket = (BluetoothSocket) bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bluetoothDevice, 1);
-                    socket.connect();
-                    Log.e("", "Connected");
-                }
-                catch (Exception e2)
-                {
-                    createNotification();
-                    Log.e("", "Couldn't establish Bluetooth connection!");
-                }
-            }
-
-
-                try
-                {
-                    socket.close();
-                }
-                catch (Exception ex)
-                {
-                    Log.e("", "Couldn't Close Socket!");
-                }
-
-                if(socket.isConnected() == false)
-                {
-                    createNotification();
-                }
-
-                try
-                {
-                    Thread.sleep(5000);
-                } catch (Exception ex) {
-
-                }
-            }
-        }
-    };
 
 }
