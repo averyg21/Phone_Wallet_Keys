@@ -633,8 +633,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return true;
         }
         if (id==R.id.id_help){
-            Intent intentHelp = new Intent(MainActivity.this,Help.class);
-            startActivity(intentHelp);
+            /*Intent intentHelp = new Intent(MainActivity.this,Help.class);
+            startActivity(intentHelp);*/
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://averyg21.github.io/PWKWebsite/")));
             return true;
         }
         if (id==R.id.id_history){

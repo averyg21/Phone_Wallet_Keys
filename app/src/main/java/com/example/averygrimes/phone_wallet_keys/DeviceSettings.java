@@ -8,6 +8,9 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -169,19 +172,20 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             {
                 final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
-                if(isChecked)
+                if(bluetoothAdapter.isEnabled())
                 {
-                    myThread = new Thread(connectToDevice);
-                    myThread.start();
-                    connectedDeviceAddress = deviceAddress;
+                    if(isChecked)
+                    {
+                        myThread = new Thread(connectToDevice);
+                        myThread.start();
+                        connectedDeviceAddress = deviceAddress;
+                    }
+                    else
+                    {
+                        myThread.interrupt();
+                        connectedDeviceAddress = null;
+                    }
                 }
-                else
-                {
-                    myThread.interrupt();
-                    connectedDeviceAddress = null;
-                }
-
-
                 }
                 //else
                 //{
@@ -293,7 +297,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
                                 if(connectedDeviceAddress != null)
                                 {
-                                    intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
+                                    //intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
                                     context.startActivity(intent);
                                 }
                                 else

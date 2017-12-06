@@ -99,9 +99,9 @@ public class Themes extends AppCompatActivity implements View.OnClickListener
             Log.e("Exception", "File write failed: " + e.toString());
         }
 
-        //Intent myIntent = new Intent(Themes.this, MainActivity.class);
-        //startActivity(myIntent);
-        finish();
+        Intent myIntent = new Intent(Themes.this, MainActivity.class);
+        startActivity(myIntent);
+        //finish();
     }
 
     @Override
