@@ -35,8 +35,9 @@ public class History extends AppCompatActivity {
             Toast.makeText(History.this, "There is nothing in this database", Toast.LENGTH_LONG).show();
         }
         else {
-            while (data.moveToNext()) {
-                user = new User(data.getString(0),data.getString(1),data.getString(2));
+            while (data.moveToNext())
+            {
+                user = new User(data.getString(0),data.getString(1),data.getString(2),data.getString(3));
                 userList.add(user);
             }
             ThreeColum_ListAdapter adapter = new ThreeColum_ListAdapter(this, R.layout.device_view_layout, userList);
@@ -53,6 +54,4 @@ public class History extends AppCompatActivity {
     {
         finish();
     }
-
-
 }
