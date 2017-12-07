@@ -44,5 +44,4 @@ public class Help extends AppCompatActivity {
     {
         finish();
     }
-
 }

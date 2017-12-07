@@ -3,7 +3,10 @@ package com.example.averygrimes.phone_wallet_keys;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.support.constraint.ConstraintLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.text.SpannableString;
@@ -16,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView.BufferType;
 
@@ -45,6 +49,10 @@ public class Themes extends AppCompatActivity implements View.OnClickListener
     public void onClick(View view)
     {
         String t = "1";
+        //changes the color of background depending on theme class
+        LinearLayout linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+        ConstraintLayout constraintLayout = (ConstraintLayout) findViewById(R.id.activity_main_layout);
+        ActionBar actionBar = getSupportActionBar();
 
         switch (view.getId())
         {
@@ -99,9 +107,7 @@ public class Themes extends AppCompatActivity implements View.OnClickListener
             Log.e("Exception", "File write failed: " + e.toString());
         }
 
-        Intent myIntent = new Intent(Themes.this, MainActivity.class);
-        startActivity(myIntent);
-        //finish();
+        finish();
     }
 
     @Override
@@ -109,7 +115,4 @@ public class Themes extends AppCompatActivity implements View.OnClickListener
     {
         finish();
     }
-
-
 }
-
