@@ -4,13 +4,13 @@ public class User {
     private String bName;
     private String bTime;
     private String bDate;
-    //private String bStatus;
+    private String bStatus;
 
-    public User(String Dname, String Dtime, String Ddate){
+    public User(String Dname, String Dtime, String Ddate, String Dstatus){
         bName = Dname;
         bTime = Dtime;
         bDate = Ddate;
-        //bStatus = Dstatus;
+        bStatus = Dstatus;
     }
 
     public String getbName(){
@@ -25,5 +25,5 @@ public class User {
         return bDate;
     }
 
-    //public String getbStatus(){ return bStatus; }
+    public String getbStatus(){ return bStatus; }
 }

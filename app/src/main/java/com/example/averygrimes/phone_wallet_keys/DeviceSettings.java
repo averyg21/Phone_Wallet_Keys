@@ -8,13 +8,12 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -27,31 +26,29 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Stack;
 import java.util.UUID;
 import android.app.AlertDialog;
 import android.widget.Switch;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.widget.Toast;
 
 
 public class DeviceSettings extends AppCompatActivity implements View.OnClickListener
 {
     private static final String TAG = "DeviceSettings";
-    Button btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Notification, btn_DeviceSettings_SnoozeTimer;
-
+    Button btn_DeviceSettings_Delete, btn_DeviceSettings_EditName, btn_DeviceSettings_Notification;
 
     BluetoothAdapter bluetoothAdapter;
     String deviceAddress;
     Thread myThread;
+    long threadID;
     String connectedDeviceAddress;
 
     // Used to connect to the bluetooth device
@@ -60,29 +57,27 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
     Uri uriSound;
 
+    //Access the database
+    Database myDb;
+
     // Used for sending notification to phone
     NotificationCompat.Builder notification;
     private static final int uniqueID = 45612;
 
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device_settings);
+        context = this;
 
-        myThread = new Thread(connectToDevice);
-
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Bundle extrasForDeviceSettings = getIntent().getExtras();
 
         deviceAddress = extrasForDeviceSettings.getString("deviceAddress");
 
-        if(extrasForDeviceSettings.containsKey("ConnectedDeviceAddress"))
-        {
-            connectedDeviceAddress = extrasForDeviceSettings.getString("ConnectedDeviceAddress");
-        }
-
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
         getSupportActionBar().setTitle(bluetoothDevice.getName());
@@ -101,6 +96,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         @Override
         public void run()
         {
+            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             final BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
 
             while (true)
@@ -127,14 +123,59 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                         socket = (BluetoothSocket) bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bluetoothDevice, 1);
                         socket.connect();
                         Log.e("", "Connected");
-                    } catch (Exception e2) {
-                        createNotification();
+                    } catch (Exception e2)
+                    {
+
+                        //when device is added will show up on the database table
+                        String Dname = bluetoothDevice.getName().toString();
+                        //String Dstatus = "";
+                        Date d=new Date();
+                        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                        String currentDateTimeString = sdf.format(d);
+                        String Dtime = currentDateTimeString;
+
+                        Calendar c = Calendar.getInstance();
+                        SimpleDateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+                        String formattedDate = df.format(c.getTime());
+                        String Ddate = formattedDate;
+
+                        AddData(Dname,Dtime,Ddate,"Lost");
+
+                        createNotification(Dname, Dtime);
+
+                        try
+                        {
+                            File file = context.getFileStreamPath("ConnectedDevice.txt");
+
+                            file.createNewFile();
+
+                            String temp = "Empty";
+
+                            FileOutputStream writer = context.openFileOutput(file.getName(), Context.MODE_PRIVATE);
+                            byte[] bytesArray = temp.getBytes();
+
+                            writer.write(bytesArray);
+
+                            writer.close();
+
+                            FileInputStream reader = context.openFileInput(file.getName());
+
+                            String content = "";
+
+                            byte[] input = new byte[reader.available()];
+                            while (reader.read(input) != -1) {}
+                            content += new String(input);
+
+                            Log.d("myTag",content);
+                        }
+                        catch (IOException ex) {
+                            Log.e("Exception", "File write failed: " + e.toString());
+                        }
 
                         Log.d("", "Couldn't establish Bluetooth connection!: " + e2);
                         return;
                     }
                 }
-
 
                 try {
                     socket.close();
@@ -165,6 +206,37 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
         final Switch sw = (Switch) menu.findItem(R.id.myswitch).getActionView().findViewById(R.id.action_switch);
 
+        String temp = "";
+
+        try
+        {
+            File file = context.getFileStreamPath("ConnectedDevice.txt");
+            FileInputStream reader = openFileInput(file.getName());
+
+            byte[] input = new byte[reader.available()];
+            while (reader.read(input) != -1) {}
+            temp += new String(input);
+        }
+        catch (IOException e) {
+            Log.e("Exception", "File Read failed: " + e.toString());
+        }
+
+        if(temp.equals(deviceAddress))
+        {
+            sw.setEnabled(true);
+            sw.toggle();
+        }
+        else if(!temp.equals("Empty"))
+        {
+            sw.setEnabled(false);
+        }
+        else
+        {
+            sw.setEnabled(true);
+        }
+
+        final String content = temp;
+
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
         {
             @Override
@@ -174,33 +246,174 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
 
                 if(bluetoothAdapter.isEnabled())
                 {
-                    if(isChecked)
+                    if(isChecked && content.equals("Empty"))
                     {
                         myThread = new Thread(connectToDevice);
                         myThread.start();
+                        threadID = myThread.getId();
+
+
+                        try
+                        {
+                            File file = getFileStreamPath("ThreadID.txt");
+
+                            file.createNewFile();
+
+
+                            FileOutputStream writer = openFileOutput(file.getName(), Context.MODE_PRIVATE);
+                            byte[] bytesArray = Long.toString(threadID).getBytes();
+
+                            writer.write(bytesArray);
+
+                            writer.close();
+
+                            FileInputStream reader = openFileInput(file.getName());
+
+                            String content = "";
+
+                            byte[] input = new byte[reader.available()];
+                            while (reader.read(input) != -1) {}
+                            content += new String(input);
+
+                            Log.d("myTag",content);
+                        }
+                        catch (IOException e) {
+                            Log.e("Exception", "File write failed: " + e.toString());
+                        }
+
+
                         connectedDeviceAddress = deviceAddress;
+
+                        //when device is added will show up on the database table
+                        String Dname = bluetoothDevice.getName().toString();
+                        //String Dstatus = "";
+                        Date d=new Date();
+                        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                        String currentDateTimeString = sdf.format(d);
+                        String Dtime = currentDateTimeString;
+
+                        Calendar c = Calendar.getInstance();
+                        SimpleDateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+                        String formattedDate = df.format(c.getTime());
+                        String Ddate = formattedDate;
+
+                        AddData(Dname,Dtime,Ddate,"Connected");
+
+                        try
+                        {
+                            File file = getFileStreamPath("ConnectedDevice.txt");
+
+                            file.createNewFile();
+
+                            FileOutputStream writer = openFileOutput(file.getName(), Context.MODE_PRIVATE);
+                            byte[] bytesArray = deviceAddress.getBytes();
+
+                            writer.write(bytesArray);
+
+                            writer.close();
+
+                            FileInputStream reader = openFileInput(file.getName());
+
+                            String content = "";
+
+                            byte[] input = new byte[reader.available()];
+                            while (reader.read(input) != -1) {}
+                            content += new String(input);
+
+                            Log.d("myTag",content);
+                        }
+                        catch (IOException e) {
+                            Log.e("Exception", "File write failed: " + e.toString());
+                        }
+                    }
+                    else if(isChecked && !content.equals("Empty"))
+                    {
+                        Toast.makeText(getApplicationContext(), "Another device is currently connected", Toast.LENGTH_LONG).show();
                     }
                     else
                     {
-                        myThread.interrupt();
-                        connectedDeviceAddress = null;
+                        //when device is added will show up on the database table
+                        String Dname = bluetoothDevice.getName().toString();
+                        //String Dstatus = "";
+                        Date d=new Date();
+                        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                        String currentDateTimeString = sdf.format(d);
+                        String Dtime = currentDateTimeString;
+
+                        Calendar c = Calendar.getInstance();
+                        SimpleDateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+                        String formattedDate = df.format(c.getTime());
+                        String Ddate = formattedDate;
+
+                        AddData(Dname,Dtime,Ddate,"Disconnected");
+
+
+                        String temp = "";
+
+                        try
+                        {
+                            File file = getFileStreamPath("ThreadID.txt");
+                            FileInputStream reader = openFileInput(file.getName());
+
+                            byte[] input = new byte[reader.available()];
+                            while (reader.read(input) != -1) {}
+                            temp += new String(input);
+                        }
+                        catch (IOException e) {
+                            Log.e("Exception", "File Read failed: " + e.toString());
+                        }
+
+                        threadID = Long.parseLong(temp);
+
+                        for (Thread t : Thread.getAllStackTraces().keySet())
+                            if (t.getId()==threadID)
+                                t.interrupt();
+                        //myThread.interrupt();
+                        //connectedDeviceAddress = null;
                     }
                 }
-                }
-                //else
-                //{
+                else
+                {
+                    try
+                    {
+                        File file = getFileStreamPath("ConnectedDevice.txt");
 
-                //}
+                        file.createNewFile();
+
+                        String c = "Empty";
+
+                        FileOutputStream writer = openFileOutput(file.getName(), Context.MODE_PRIVATE);
+                        byte[] bytesArray = c.getBytes();
+
+                        writer.write(bytesArray);
+
+                        writer.close();
+
+                        FileInputStream reader = openFileInput(file.getName());
+
+                        String content = "";
+
+                        byte[] input = new byte[reader.available()];
+                        while (reader.read(input) != -1) {}
+                        content += new String(input);
+
+                        Log.d("myTag",content);
+                    }
+                    catch (IOException e) {
+                        Log.e("Exception", "File write failed: " + e.toString());
+                    }
+                }
+            }
             //}
         });
         return true;
     }
 
     //used to generate notification
-    public void createNotification()
+    public void createNotification(String deviceName, String time)
     {
         String content = "";
-        File file = getFileStreamPath("NotificationSound.txt");
+        File file = context.getFileStreamPath("NotificationSound.txt");
         String[] notificationList = new String[1];
 
         try
@@ -211,7 +424,7 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             }
             else
             {
-                FileInputStream reader = openFileInput(file.getName());
+                FileInputStream reader = context.openFileInput(file.getName());
 
                 byte[] input = new byte[reader.available()];
                 while (reader.read(input) != -1) {}
@@ -238,31 +451,31 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
             Log.e("Exception", "File Read failed: " + e.toString());
         }
 
-        Intent intent = new Intent(this,DeviceSettings.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,intent, 0);
+        Intent intent = new Intent(context,DeviceSettings.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,0,intent, 0);
 
         //Build the large notification
-        Drawable drawable= ContextCompat.getDrawable(this,R.drawable.logoteam);
+        Drawable drawable= ContextCompat.getDrawable(context,R.drawable.logoteam);
 
         Bitmap bitmap = ((BitmapDrawable)drawable).getBitmap();
 
-        notification = new NotificationCompat.Builder(this);
+        notification = new NotificationCompat.Builder(context);
         notification.setAutoCancel(true);
         notification.setSound(uriSound);
 
         //Build the notification
-        notification.setSmallIcon(R.drawable.oreo);
+        notification.setSmallIcon(R.drawable.logoteam);
         notification.setTicker("This is the ticker");
         notification.setWhen(System.currentTimeMillis());
-        notification.setContentTitle("Lost Device Title");
-        notification.setContentText("Body of the notification");
+        notification.setContentTitle("Lost Device");
+        notification.setContentText(deviceName + " was lost at " + time);
         notification.setLargeIcon(bitmap);
         notification.setContentIntent(pendingIntent);
         long[] pattern = {500,500,500,500,500,500,500,500,500};
         notification.setVibrate(pattern);
 
         //Build notification and issues it
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        NotificationManager nm = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
         nm.notify(uniqueID, notification.build());
     }
 
@@ -282,28 +495,31 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
                             @Override
                             public void onClick(DialogInterface dialog, int i) {
 
-                                try {
+                                try
+                                {
                                     Method method = bluetoothDevice.getClass().getMethod("removeBond", (Class[]) null);
                                     method.invoke(bluetoothDevice, (Object[]) null);
+
+                                    //when device is added will show up on the database table
+                                    String Dname = bluetoothDevice.getName().toString();
+                                    //String Dstatus = "";
+                                    Date d=new Date();
+                                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                                    String currentDateTimeString = sdf.format(d);
+                                    String Dtime = currentDateTimeString;
+
+                                    Calendar c = Calendar.getInstance();
+                                    SimpleDateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+                                    String formattedDate = df.format(c.getTime());
+                                    String Ddate = formattedDate;
+
+                                    AddData(Dname,Dtime,Ddate,"Deleted");
 
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
 
-                                final Switch sw = (Switch) findViewById(R.id.action_switch);
-
-                                Context context = getBaseContext();
-                                Intent intent = new Intent(context, MainActivity.class);
-
-                                if(connectedDeviceAddress != null)
-                                {
-                                    //intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
-                                    context.startActivity(intent);
-                                }
-                                else
-                                {
-                                    context.startActivity(intent);
-                                }
+                                finish();
                             }
                         })
                         .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -381,24 +597,17 @@ public class DeviceSettings extends AppCompatActivity implements View.OnClickLis
         }
     }
 
+    public void AddData(String bName, String bTime, String bDate, String bStatus)
+    {
+        //access database class
+        myDb = new Database(context);
+
+        boolean insertData = myDb.addData(bName,bTime,bDate, bStatus);
+    }
+
     @Override
     public void onBackPressed()
     {
-        final Switch sw = (Switch) findViewById(R.id.action_switch);
-
-        Context context = this.getApplicationContext();
-        Intent intent = new Intent(context, MainActivity.class);
-
-        if(sw.isChecked())
-        {
-            intent.putExtra("ConnectedDeviceAddress", connectedDeviceAddress);
-            context.startActivity(intent);
-        }
-        else
-        {
-            finish();
-        }
+        finish();
     }
 }
-
-

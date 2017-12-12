@@ -31,7 +31,7 @@ public class ThreeColum_ListAdapter extends ArrayAdapter<User> {
             TextView bName = (TextView) convertView.findViewById(R.id.tt1);
             TextView bTime = (TextView) convertView.findViewById(R.id.tt2);
             TextView bDate = (TextView) convertView.findViewById(R.id.tt3);
-            //TextView bStatus = (TextView) convertView.findViewById(R.id.tt4);
+            TextView bStatus = (TextView) convertView.findViewById(R.id.tt4);
 
             if (bName != null){
                 bName.setText((user.getbName()));
@@ -42,7 +42,10 @@ public class ThreeColum_ListAdapter extends ArrayAdapter<User> {
             if (bDate != null){
                 bDate.setText((user.getbDate()));
             }
-            //if (bStatus != null){ bStatus.setText((user.getbStatus()));
+            if (bStatus != null)
+            {
+                bStatus.setText((user.getbStatus()));
+            }
         }
         return convertView;
     }
